@@ -1,59 +1,66 @@
 "use client";
-import { useRecoilState } from "recoil";
-import "./PopularPlaylist.css";
-import PlaylistCover from "./components/PlaylistCover/PlaylistCover";
-import { PlaylistData, popularPlaylistsState } from "@/app/recoil/atoms";
-import { checkTokenTime } from "@/utils/utils";
-import { useEffect } from "react";
 
+import { useEffect, useState } from "react";
 import { Bars } from "react-loader-spinner";
 
+import { usePopularPlaylistsStore } from "@/app/lib/popularPlaylistsStore";
+import useFetchTopTracks from "@/hooks/useFetchTopTracks";
+import useFetchPlaylists from "@/hooks/useFetchPlaylists";
+import PlaylistCover from "./components/PlaylistCover/PlaylistCover";
+
+import "./PopularPlaylist.css";
+
 const PopularPlaylist = () => {
-  const [popularPlaylists, setPopularPlaylists] = useRecoilState<
-    PlaylistData[] | undefined
-  >(popularPlaylistsState);
+  const { popularPlaylists, topTracks } = usePopularPlaylistsStore();
+  const { getTopTracks } = useFetchTopTracks();
+  const { getFeaturedPlaylists } = useFetchPlaylists();
+  const [isLoading, setIsLoading] = useState(true);
 
-  //fetch 5 popular playlists on first load
   useEffect(() => {
-    const fetchPopularPlaylists = async () => {
-      await checkTokenTime();
-      const accessToken = localStorage.getItem("access_token");
-
-      try {
-        const response = await fetch(
-          `https://api.spotify.com/v1/browse/featured-playlists?limit=5`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`Error fetching playlist: ${response.status}`);
-        }
-        const data = await response.json();
-
-        const featuredPlaylists = data.playlists.items;
-        console.log("featuredPlaylists", featuredPlaylists);
-        setPopularPlaylists(featuredPlaylists);
-      } catch (error) {
-        console.error("Error fetching playlist" + error);
-      }
+    const fetchData = async () => {
+      setIsLoading(true);
+      await Promise.all([getTopTracks(), getFeaturedPlaylists()]);
+      setIsLoading(false);
     };
+    fetchData();
+  }, [getTopTracks, getFeaturedPlaylists]);
 
-    fetchPopularPlaylists();
-  }, []);
+  console.log("popularPlaylists", popularPlaylists);
+  console.log("topTracks", topTracks);
+
+  if (isLoading) {
+    return (
+      <div className="popular-playlists-loader">
+        <Bars
+          height="70"
+          width="70"
+          color="var(--trans-white)"
+          ariaLabel="loading"
+        />
+      </div>
+    );
+  }
 
   return (
     <>
-      {popularPlaylists ? (
+      {popularPlaylists && topTracks ? (
         <div className="popular-playlist-section">
-          <h1 className="popular-playlist-header">Popular Playlists</h1>
+          <h1 className="popular-playlist-header">
+            Popular Playlists & Tracks
+          </h1>
           <div className="popular-playlist-row">
-            {popularPlaylists.map((popularPlaylist, index) => (
-              // <Link key={index} href={`/playlist/${popularPlaylist.id}`}>
-              <PlaylistCover key={index} popularPlaylist={popularPlaylist} />
-              // </Link>
+            {/* {popularPlaylists.map((playlist, index) => (
+              <PlaylistCover key={index} popularPlaylist={playlist} />
+            ))} */}
+          </div>
+          <h2 className="popular-playlist-header">Top Tracks</h2>
+          <div className="popular-playlist-row">
+            {topTracks.map((track, index) => (
+              <div key={index}>
+                <p>{`${track.name} by ${track.artists
+                  .map((artist) => artist.name)
+                  .join(", ")}`}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -70,5 +77,4 @@ const PopularPlaylist = () => {
     </>
   );
 };
-
 export default PopularPlaylist;
