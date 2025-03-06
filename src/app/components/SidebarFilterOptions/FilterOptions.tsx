@@ -1,12 +1,8 @@
-import "./FilterOptions.css";
 import Image from "next/image";
-import { useRecoilState } from "recoil";
-import {
-  filterOptionsState,
-  isMobileFilterOptionsOpenState,
-  tracksArrState,
-} from "@/app/recoil/atoms";
 import { useEffect, useState } from "react";
+import { useFilterOptionsStore } from "@/app/lib/filterOptionsStore";
+
+import "./FilterOptions.css";
 
 export interface FilterOptions {
   selectedDuration: string | null;
@@ -14,12 +10,18 @@ export interface FilterOptions {
 }
 
 const FilterOptions = () => {
-  const [filterOptions, setFilterOptions] = useRecoilState(filterOptionsState);
+  const {
+    selectedDuration,
+    explicit,
+    isMobileFilterOptionsOpen,
+    setIsMobileFilterOptionsOpen,
+    setFilterOptions,
+    clearAllFilters,
+  } = useFilterOptionsStore();
+
   const [isAnyOptionSelected, setIsAnyOptionSelected] =
     useState<boolean>(false);
-  const [isMobileFilterOptionsOpen, setIsMobileFilterOptionsOpen] =
-    useRecoilState(isMobileFilterOptionsOpenState);
-  const [tracksArr, setTracksArr] = useRecoilState(tracksArrState);
+  const [tracksArr, setTracksArr] = useState<any[]>([]); // Assuming tracksArr is managed elsewhere
 
   const durations = [
     "less than 2 minutes",
@@ -29,26 +31,21 @@ const FilterOptions = () => {
   ];
   const explicitOptions = ["Yes", "No"];
 
-  const handleCheckboxChange = (type: keyof FilterOptions, value: string) => {
-    if (filterOptions[type] === value) {
-      setFilterOptions({ ...filterOptions, [type]: null });
-    } else {
-      setFilterOptions({ ...filterOptions, [type]: value });
-    }
-  };
-
-  const clearAllFilters = () => {
-    setFilterOptions({ selectedDuration: null, explicit: null });
+  const handleCheckboxChange = (
+    type: keyof { selectedDuration: string | null; explicit: string | null },
+    value: string
+  ) => {
+    setFilterOptions({
+      ...useFilterOptionsStore.getState(),
+      [type]: selectedDuration === value || explicit === value ? null : value,
+    });
   };
 
   //check if any of checkboxes is checked for displaying clear button
   useEffect(() => {
-    const isSelected =
-      filterOptions.selectedDuration !== null ||
-      filterOptions.explicit !== null;
-
+    const isSelected = selectedDuration !== null || explicit !== null;
     setIsAnyOptionSelected(isSelected);
-  }, [filterOptions]);
+  }, [selectedDuration, explicit]);
 
   return (
     <div
@@ -88,7 +85,7 @@ const FilterOptions = () => {
               type="checkbox"
               id={duration}
               name="duration"
-              checked={filterOptions.selectedDuration === duration}
+              checked={selectedDuration === duration}
               onChange={() =>
                 handleCheckboxChange("selectedDuration", duration)
               }
@@ -109,7 +106,7 @@ const FilterOptions = () => {
               type="checkbox"
               id={option}
               name="explicit"
-              checked={filterOptions.explicit === option}
+              checked={explicit === option}
               onChange={() => handleCheckboxChange("explicit", option)}
               aria-labelledby={option}
             />
@@ -125,7 +122,6 @@ const FilterOptions = () => {
           Clear all filters
         </button>
       )}
-      {/* <button className="create-playlist-button">Create Playlist</button> */}
       <p className="filter-result">Found {tracksArr?.length} tracks</p>
     </div>
   );
