@@ -1,59 +1,51 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
-import {
-  CurrentUser,
-  currentUserState,
-  isSideBarOpenState,
-  isUserLoggedInState,
-} from "@/app/recoil/atoms";
-import "./Header.css";
+
+import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRecoilState, useRecoilValue } from "recoil";
-import { useEffect } from "react";
-import { auth } from "@/firebase/firebase";
-import { signOutUser } from "@/firebase/auth";
 import { useRouter } from "next/navigation";
 
+import { auth } from "@/firebase/firebase";
+import { signOutUser } from "@/firebase/auth";
+import { useHeaderStore, CurrentUser } from "@/app/lib/headerStore";
+import "./Header.css";
+
 const Header = () => {
-  const [isUserLoggedIn, setIsUserLoggedIn] =
-    useRecoilState<boolean>(isUserLoggedInState);
-  const [currentUser, setCurrentUser] = useRecoilState<CurrentUser | undefined>(
-    currentUserState
-  );
-  const isSideBarOpen = useRecoilValue(isSideBarOpenState);
+  const {
+    isUserLoggedIn,
+    setIsUserLoggedIn,
+    currentUser,
+    setCurrentUser,
+    isSideBarOpen,
+  } = useHeaderStore();
+
   const router = useRouter();
 
   const handleLogOutOnClick = async () => {
-    await signOutUser()
-      .then((result) => {
-        result ? router.push("/") : console.log("The logout was unsuccessful");
-      })
-      .catch((error) => {
-        console.log("The logout was unsuccessful with error:", error);
-      });
+    try {
+      const result = await signOutUser();
+      if (result) {
+        router.push("/");
+      } else {
+        console.error("Logout unsuccessful");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   //check if user is logged in
   useEffect(() => {
-    auth.onAuthStateChanged(function (user) {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setIsUserLoggedIn(true);
-
-        if (user && user.email) {
-          let name = "";
-          let surname = "";
-          if (user.displayName !== null) {
-            const nameParts = user.displayName.split(" ");
-            name = nameParts[0];
-            surname = nameParts[1];
-          }
-
+        if (user.email && user.displayName) {
+          const [name, surname] = user.displayName.split(" ");
           const input: CurrentUser = {
             id: user.uid,
             image: "",
-            name: name,
-            surname: surname,
+            name,
+            surname,
             email: user.email,
             type: "",
           };
@@ -64,17 +56,25 @@ const Header = () => {
         }
       } else {
         setIsUserLoggedIn(false);
-        console.log("there is no user");
+        console.log("No user logged in");
       }
     });
-  }, []);
+
+    return () => unsubscribe();
+  }, [setIsUserLoggedIn, setCurrentUser]);
 
   return (
     <header>
       <div className="mobile-header">
         <Link href="/">
           <div className="logo-container">
-            <Image src="/icons/logo.png" alt="logo" width={60} height={60} />
+            <Image
+              src="/icons/logo.png"
+              alt="logo"
+              width={60}
+              height={60}
+              priority
+            />
             <p>Song Sieve</p>
           </div>
         </Link>

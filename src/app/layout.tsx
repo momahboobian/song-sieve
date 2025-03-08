@@ -1,7 +1,8 @@
+import DynamicBackground from "./components/Background/Background";
 import "./globals.css";
-import RecoilRootWrapper from "./recoil/RecoilRootWrapper";
+import type { Metadata } from "next";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Song Sieve",
   description:
     "A application developed to enhance the music-sharing experience",
@@ -16,7 +17,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <RecoilRootWrapper>{children}</RecoilRootWrapper>
+        <DynamicBackground />
+        {children}
       </body>
     </html>
   );

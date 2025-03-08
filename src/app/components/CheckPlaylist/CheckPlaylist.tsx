@@ -13,8 +13,8 @@ const CheckPlaylist = () => {
         <p className="check-playlist-section-title">
           Provide link to Spotify playlist
         </p>
-        <Input />
-        <Playlist />
+        {/* <Input />
+        <Playlist /> */}
       </div>
     </div>
   );
